@@ -26,7 +26,7 @@
           "showLegend": true
         }
       },
-      "customWidth": "50",
+      "customWidth": "33",
       "name": "Count of Databases by Compatibility Level"
     },
     {
@@ -47,8 +47,39 @@
           "showLegend": true
         }
       },
-      "customWidth": "50",
+      "customWidth": "33",
       "name": "Query 2"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "resources\r\n| where type == \"microsoft.azurearcdata/sqlserverinstances/databases\"\r\n| extend lastFullBackup = iff(isnull(properties['backupInformation']['lastFullBackup']),'False','True')\r\n| summarize Databases = count(lastFullBackup) by lastFullBackup",
+        "size": 3,
+        "title": "Count of Databases by Full Backup",
+        "queryType": 1,
+        "resourceType": "microsoft.resources/tenants",
+        "crossComponentResources": [
+          "value::tenant"
+        ],
+        "visualization": "piechart",
+        "chartSettings": {
+          "showMetrics": false,
+          "showLegend": true,
+          "seriesLabelSettings": [
+            {
+              "seriesName": "True",
+              "color": "green"
+            },
+            {
+              "seriesName": "False",
+              "color": "redBright"
+            }
+          ]
+        }
+      },
+      "customWidth": "33",
+      "name": "Query 2 - Copy"
     },
     {
       "type": 3,

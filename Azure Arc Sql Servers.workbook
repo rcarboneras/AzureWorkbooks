@@ -4,7 +4,7 @@
     {
       "type": 1,
       "content": {
-        "json": "# Azure Arc SQL Servers"
+        "json": "# Azure Arc SQL Server Instances"
       },
       "name": "text - 2"
     },
@@ -87,6 +87,36 @@
         "resourceType": "microsoft.operationalinsights/workspaces"
       },
       "name": "parameters - 7"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "resources\r\n| where type =~ 'microsoft.hybridcompute/machines'\r\n| where properties.detectedProperties.mssqldiscovered == \"true\"\r\n| count\r\n| extend Tittle=\"Number of Azure Arc SQL Servers:\"",
+        "size": 4,
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": [
+          "{Subscription}"
+        ],
+        "visualization": "tiles",
+        "tileSettings": {
+          "titleContent": {
+            "columnMatch": "Tittle",
+            "formatter": 1
+          },
+          "leftContent": {
+            "columnMatch": "Count",
+            "formatter": 12,
+            "formatOptions": {
+              "palette": "auto"
+            }
+          },
+          "showBorder": true,
+          "size": "auto"
+        }
+      },
+      "name": "query - 8"
     },
     {
       "type": 3,
@@ -292,13 +322,61 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "resources\r\n| where type =~ \"microsoft.hybridcompute/machines\"\r\n| where properties.mssqlDiscovered == true\r\n| join kind=leftouter (resources\r\n    | where type =~ \"microsoft.hybridcompute/machines/extensions\"\r\n    | where properties.type in (\"WindowsAgent.SqlServer\", \"MicrosoftMonitoringAgent\")\r\n    | extend ArcServerResourceId = tostring(split(id, \"/extensions\")[0])\r\n    | project ArcServerResourceId, ExtensionType = tostring(properties.type), ExtensionState = tostring(properties.provisioningState)\r\n    | summarize SqlExtensionInstalled = countif(ExtensionType == \"WindowsAgent.SqlServer\" and ExtensionState == \"Succeeded\"), MMAExtensionInstalled = countif(ExtensionType == \"MicrosoftMonitoringAgent\" and ExtensionState == \"Succeeded\") by ArcServerResourceId)\r\non $left.id == $right.ArcServerResourceId\r\n| join kind=leftouter (resources\r\n    | where type =~ \"microsoft.azurearcdata/sqlserverinstances\"\r\n    | project ArcServerId = tostring(properties.containerResourceId), SqlServerId = id, InstanceName = properties.instanceName, Version = properties.version\r\n    | summarize ArcSqlServerIds = make_list(SqlServerId) by ArcServerId)\r\non $left.id == $right.ArcServerId\r\n| project id, SqlExtensionInstalled = (SqlExtensionInstalled==1), MMAExtensionInstalled = (MMAExtensionInstalled == 1), ArcSqlServerIds\r\n",
+        "query": "resources\r\n| where type =~ \"microsoft.hybridcompute/machines\"\r\n| where properties.mssqlDiscovered == true\r\n| extend id = tolower(id)\r\n| join kind=leftouter (resources\r\n| where type =~ \"microsoft.hybridcompute/machines/extensions\"\r\n| where properties.type in (\"WindowsAgent.SqlServer\", \"AzureMonitorWindowsAgent\")\r\n| extend ArcServerResourceId = tolower(tostring(split(id, \"/extensions\")[0]))\r\n| project ArcServerResourceId, ExtensionType = tostring(properties.type), ExtensionState = tostring(properties.provisioningState)\r\n| summarize SqlExtensionInstalled = countif(ExtensionType == \"WindowsAgent.SqlServer\" and ExtensionState == \"Succeeded\"), AMAExtensionInstalled = countif(ExtensionType == \"AzureMonitorWindowsAgent\" and ExtensionState == \"Succeeded\") by ArcServerResourceId)\r\non $left.id == $right.ArcServerResourceId\r\n| join kind=leftouter (resources\r\n| where type =~ \"microsoft.azurearcdata/sqlserverinstances\"\r\n| project ArcServerId = tolower(tostring(properties.containerResourceId)), SqlServerId = id, InstanceName = properties.instanceName, Version = properties.version\r\n| summarize ArcSqlServerInstances = make_list(split(SqlServerId, \"/\")[8]) by ArcServerId)\r\non $left.id == $right.ArcServerId\r\n| project ArcServer = id, SqlExtensionInstalled = (SqlExtensionInstalled==1), AMAExtensionInstalled = (AMAExtensionInstalled == 1), ArcSqlServerInstances\r\n",
         "size": 0,
         "queryType": 1,
         "resourceType": "microsoft.resourcegraph/resources",
         "crossComponentResources": [
           "{Subscription}"
-        ]
+        ],
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "SqlExtensionInstalled",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "icons",
+                "thresholdsGrid": [
+                  {
+                    "operator": "==",
+                    "thresholdValue": "0",
+                    "representation": "Important",
+                    "text": ""
+                  },
+                  {
+                    "operator": "Default",
+                    "thresholdValue": null,
+                    "representation": "success",
+                    "text": ""
+                  }
+                ]
+              }
+            },
+            {
+              "columnMatch": "AMAExtensionInstalled",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "icons",
+                "thresholdsGrid": [
+                  {
+                    "operator": "==",
+                    "thresholdValue": "0",
+                    "representation": "2",
+                    "text": ""
+                  },
+                  {
+                    "operator": "Default",
+                    "thresholdValue": null,
+                    "representation": "success",
+                    "text": ""
+                  }
+                ]
+              }
+            }
+          ],
+          "rowLimit": 500,
+          "filter": true
+        }
       },
       "name": "query - 0"
     }
